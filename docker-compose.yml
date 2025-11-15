@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fipe-api-2-postgres
+    environment:
+      POSTGRES_DB: fipe_api2
+      POSTGRES_USER: fipe_user
+      POSTGRES_PASSWORD: fipe_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - api-2-network
+      - fipe-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fipe_user -d fipe_api2"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fipe-api-2
+    environment:
+      # Database
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/fipe_api2
+      SPRING_DATASOURCE_USERNAME: fipe_user
+      SPRING_DATASOURCE_PASSWORD: fipe_password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "true"
+      
+      # Redis (conectando ao Redis da api-1)
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      
+      # Kafka (conectando ao Kafka da api-1)
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: api-2-consumer-group
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+      
+      # Actuator
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
+      
+      # Java Options
+      JAVA_OPTS: "-Xmx512m -Xms256m"
+    ports:
+      - "8086:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - api-2-network
+      - fipe-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  api-2-network:
+    driver: bridge
+  fipe-network:
+    external: true
+    name: fipe-network
+
