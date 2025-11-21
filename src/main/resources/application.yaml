@@ -7,7 +7,6 @@ spring:
   application:
     name: api-2
   
-  # Database Configuration
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/fipe_api2}
     username: ${SPRING_DATASOURCE_USERNAME:fipe_user}
@@ -36,9 +35,16 @@ spring:
       auto-offset-reset: ${SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET:earliest}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: false
+      properties:
+        session.timeout.ms: 30000
+        max.poll.interval.ms: 300000
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      retries: 3
+    properties:
+      spring.kafka.bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
 management:
   endpoints:
@@ -48,3 +54,28 @@ management:
   endpoint:
     health:
       show-details: ${MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS:always}
+
+kafka:
+  topics:
+    brands: ${KAFKA_TOPIC_BRANDS:fipe-brands-events}
+
+service:
+  api:
+    url:
+      fipe: ${FIPE_API_URL:https://parallelum.com.br/fipe/api/v1/carros}
+
+fipe:
+  api:
+    subscription-token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJiYjRkODA1Yy1kOGI0LTQ3MWEtYTlhNi00NDBhMTEwM2Q3MDkiLCJlbWFpbCI6Im1hcmNlbG9odG95QGdtYWlsLmNvbSIsImlhdCI6MTc2Mzc1MTA3OH0.4yVQjHx-Op3ecx3BKrRBuV2OwOa4lOR-Gf7zCKBNiEA
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 10000
+        readTimeout: 60000
+        loggerLevel: full
+      fipe-client:
+        connectTimeout: 10000
+        readTimeout: 60000
+        loggerLevel: full
